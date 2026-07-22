@@ -1,3 +1,4 @@
+import { DEFAULT_SIDEBAR_WIDTH } from '../shared/layout'
 import { platformIds, type PlatformId } from '../shared/platforms'
 import type { AppConfig } from '../shared/types'
 
@@ -12,6 +13,8 @@ export function createDefaultConfig(): AppConfig {
     prefs: {
       lastPlatform: 'chatgpt',
       lastAccountId: null,
+      lastAccountIdByPlatform: {},
+      sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
     },
   }
 }

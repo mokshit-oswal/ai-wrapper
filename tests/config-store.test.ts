@@ -33,4 +33,40 @@ describe('config-store', () => {
     expect(loaded.platforms.gemini.accounts).toHaveLength(1)
     expect(loaded.platforms.gemini.accounts[0].label).toBe('Personal')
   })
+
+  it('fills new prefs fields when loading legacy config', () => {
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        workspaces: [],
+        platforms: {
+          chatgpt: { accounts: [] },
+          claude: { accounts: [] },
+          gemini: { accounts: [] },
+          openai_platform: { accounts: [] },
+        },
+        prefs: { lastPlatform: 'claude', lastAccountId: null },
+      }),
+      'utf8',
+    )
+    const loaded = loadConfig(file)
+    expect(loaded.prefs.lastPlatform).toBe('claude')
+    expect(loaded.prefs.lastAccountIdByPlatform).toEqual({})
+    expect(loaded.prefs.sidebarWidth).toBe(280)
+  })
+
+  it('clamps invalid sidebarWidth on load', () => {
+    const base = createDefaultConfig()
+    saveConfig(file, {
+      ...base,
+      prefs: { ...base.prefs, sidebarWidth: 50 },
+    })
+    // After normalize runs clamp — write raw JSON to bypass type safety:
+    fs.writeFileSync(
+      file,
+      JSON.stringify({ ...base, prefs: { ...base.prefs, sidebarWidth: 50 } }),
+      'utf8',
+    )
+    expect(loadConfig(file).prefs.sidebarWidth).toBe(200)
+  })
 })

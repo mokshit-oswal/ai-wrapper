@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createDefaultConfig, isPlatformId } from './default-config'
-import { platformIds } from '../shared/platforms'
+import { clampSidebarWidth, DEFAULT_SIDEBAR_WIDTH } from '../shared/layout'
+import { platformIds, type PlatformId } from '../shared/platforms'
 import type { AppConfig } from '../shared/types'
 
 function normalizeConfig(raw: unknown): AppConfig {
@@ -36,10 +37,26 @@ function normalizeConfig(raw: unknown): AppConfig {
     obj.prefs && (obj.prefs.lastAccountId === null || typeof obj.prefs.lastAccountId === 'string')
       ? obj.prefs.lastAccountId
       : null
+  const rawByPlatform =
+    obj.prefs && typeof obj.prefs === 'object' && obj.prefs.lastAccountIdByPlatform
+      ? obj.prefs.lastAccountIdByPlatform
+      : {}
+  const lastAccountIdByPlatform: Partial<Record<PlatformId, string | null>> = {}
+  for (const id of platformIds()) {
+    const v = (rawByPlatform as Record<string, unknown>)[id]
+    if (v === null || typeof v === 'string') lastAccountIdByPlatform[id] = v
+  }
+
+  const sidebarWidth = clampSidebarWidth(
+    obj.prefs && typeof (obj.prefs as { sidebarWidth?: unknown }).sidebarWidth === 'number'
+      ? (obj.prefs as { sidebarWidth: number }).sidebarWidth
+      : DEFAULT_SIDEBAR_WIDTH,
+  )
+
   return {
     workspaces,
     platforms,
-    prefs: { lastPlatform, lastAccountId },
+    prefs: { lastPlatform, lastAccountId, lastAccountIdByPlatform, sidebarWidth },
   }
 }
 

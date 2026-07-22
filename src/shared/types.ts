@@ -14,7 +14,12 @@ export type WorkspaceEntry = {
 export type AppConfig = {
   workspaces: WorkspaceEntry[]
   platforms: Record<PlatformId, { accounts: Account[] }>
-  prefs: { lastPlatform: PlatformId; lastAccountId: string | null }
+  prefs: {
+    lastPlatform: PlatformId
+    lastAccountId: string | null
+    lastAccountIdByPlatform: Partial<Record<PlatformId, string | null>>
+    sidebarWidth: number
+  }
 }
 
 export type DirEntry = {
