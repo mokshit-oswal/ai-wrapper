@@ -288,6 +288,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
         if (next) {
           platformId = next.platformId
           accountId = next.account.id
+          addPlatformSelect.value = platformId
         } else {
           accountId = null
         }
@@ -390,10 +391,12 @@ export async function mountApp(root: HTMLElement): Promise<void> {
       document.body.style.cursor = ''
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
       await window.api.setSidebarWidth(sidebarWidth)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
   })
 
   window.api.onConfigUpdated((next) => {
