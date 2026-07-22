@@ -4,6 +4,7 @@ import path from 'node:path'
 import { addAccount, findAccount, removeAccount, renameAccount } from './account-service'
 import { loadConfig, saveConfig } from './config-store'
 import { SessionManager } from './session-manager'
+import { clampSidebarWidth } from '../shared/layout'
 import { PLATFORMS, type PlatformId, platformIds } from '../shared/platforms'
 import type { AppConfig } from '../shared/types'
 import {
@@ -118,13 +119,34 @@ export function registerIpc(ctx: AppContext): void {
     if (!account) return false
     const platform = PLATFORMS[platformId]
     ctx.getSessions()?.showAccount(platformId, account, platform.url)
+    const prev = ctx.getConfig()
     ctx.setConfig({
-      ...ctx.getConfig(),
-      prefs: { lastPlatform: platformId, lastAccountId: accountId },
+      ...prev,
+      prefs: {
+        ...prev.prefs,
+        lastPlatform: platformId,
+        lastAccountId: accountId,
+        lastAccountIdByPlatform: {
+          ...prev.prefs.lastAccountIdByPlatform,
+          [platformId]: accountId,
+        },
+      },
     })
     ctx.persist()
     ctx.broadcastConfig()
     return true
+  })
+
+  ipcMain.handle('prefs:setSidebarWidth', (_e, width: number) => {
+    const sidebarWidth = clampSidebarWidth(width)
+    const prev = ctx.getConfig()
+    ctx.setConfig({
+      ...prev,
+      prefs: { ...prev.prefs, sidebarWidth },
+    })
+    ctx.persist()
+    ctx.broadcastConfig()
+    return sidebarWidth
   })
 
   ipcMain.handle(

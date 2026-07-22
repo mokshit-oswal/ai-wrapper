@@ -11,6 +11,7 @@ export type AiWrapperApi = {
   removeAccount: (platformId: PlatformId, accountId: string) => Promise<boolean>
   clearAccountSession: (platformId: PlatformId, accountId: string) => Promise<boolean>
   showAccount: (platformId: PlatformId, accountId: string) => Promise<boolean>
+  setSidebarWidth: (width: number) => Promise<number>
   setSessionBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<boolean>
   addWorkspace: () => Promise<WorkspaceEntry | null>
   removeWorkspace: (id: string) => Promise<boolean>
@@ -46,6 +47,7 @@ const api: AiWrapperApi = {
     ipcRenderer.invoke('accounts:clearSession', platformId, accountId),
   showAccount: (platformId, accountId) =>
     ipcRenderer.invoke('sessions:show', platformId, accountId),
+  setSidebarWidth: (width) => ipcRenderer.invoke('prefs:setSidebarWidth', width),
   setSessionBounds: (bounds) => ipcRenderer.invoke('sessions:setBounds', bounds),
   addWorkspace: () => ipcRenderer.invoke('workspace:add'),
   removeWorkspace: (id) => ipcRenderer.invoke('workspace:remove', id),
