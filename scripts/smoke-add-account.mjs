@@ -46,6 +46,7 @@ async function main() {
       throw new Error('window.api.addAccount missing — preload failed')
     }
 
+    await page.selectOption('#add-platform', 'chatgpt')
     await page.fill('#account-label', 'Smoke Test')
     await page.click('#add-account')
 

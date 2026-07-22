@@ -31,9 +31,9 @@ Sharing the `.dmg` / `.zip` shares **only the program**. Each person signs into 
 
 ## Usage
 
-1. Pick a platform in the left rail.
-2. **Add** an account, then sign in with Google in the webview (popups stay in that account’s session).
-3. Add more accounts per platform to switch without mixing cookies.
+1. Use the **top bar** to manage accounts: choose a **Platform**, enter a label, and click **Add** (accounts are listed globally in the sidebar under **All accounts**).
+2. Pick an account in the sidebar to open it on its platform, or pick a platform in the left rail to open that platform’s last-used account.
+3. Sign in with Google in the webview (popups stay in that account’s session). Add more accounts per platform to switch without mixing cookies.
 4. **Add folder** to grant a workspace. Search or browse, then **Copy path**, **Copy contents**, or **Prepare attach** (stages files and opens the folder for the site’s upload UI).
 
 ## Manual acceptance checklist
