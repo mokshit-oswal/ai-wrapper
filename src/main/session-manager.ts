@@ -1,4 +1,5 @@
 import { BrowserWindow, WebContentsView, session } from 'electron'
+import { DEFAULT_SIDEBAR_WIDTH } from '../shared/layout'
 import type { Account } from '../shared/types'
 
 type SessionKey = string
@@ -14,10 +15,14 @@ export class SessionManager {
   private readonly views = new Map<SessionKey, WebContentsView>()
   private readonly partitionByKey = new Map<SessionKey, string>()
   private activeKey: SessionKey | null = null
-  private bounds: ContentBounds = { x: 320, y: 0, width: 800, height: 600 }
+  private bounds: ContentBounds = { x: DEFAULT_SIDEBAR_WIDTH, y: 0, width: 800, height: 600 }
 
   constructor(parent: BrowserWindow) {
     this.parent = parent
+  }
+
+  getContentBounds(): ContentBounds {
+    return this.bounds
   }
 
   setContentBounds(bounds: ContentBounds): void {

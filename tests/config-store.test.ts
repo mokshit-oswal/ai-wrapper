@@ -55,6 +55,26 @@ describe('config-store', () => {
     expect(loaded.prefs.sidebarWidth).toBe(280)
   })
 
+  it('seeds lastAccountIdByPlatform from legacy lastAccountId', () => {
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        workspaces: [],
+        platforms: {
+          chatgpt: { accounts: [] },
+          claude: { accounts: [] },
+          gemini: { accounts: [] },
+          openai_platform: { accounts: [] },
+        },
+        prefs: { lastPlatform: 'claude', lastAccountId: 'acct-legacy-1' },
+      }),
+      'utf8',
+    )
+    const loaded = loadConfig(file)
+    expect(loaded.prefs.lastAccountId).toBe('acct-legacy-1')
+    expect(loaded.prefs.lastAccountIdByPlatform).toEqual({ claude: 'acct-legacy-1' })
+  })
+
   it('clamps invalid sidebarWidth on load', () => {
     const base = createDefaultConfig()
     saveConfig(file, {

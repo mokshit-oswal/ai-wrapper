@@ -31,7 +31,7 @@ function createWindow(ctx: ReturnType<typeof createAppState>): BrowserWindow {
   const sessions = new SessionManager(win)
   attachWindow(ctx, win, sessions)
 
-  const layoutSessions = (): void => {
+  const layoutSessionsFromConfig = (): void => {
     const [width, height] = win.getContentSize()
     const sidebarWidth = clampSidebarWidth(ctx.getConfig().prefs.sidebarWidth)
     sessions.setContentBounds({
@@ -42,8 +42,19 @@ function createWindow(ctx: ReturnType<typeof createAppState>): BrowserWindow {
     })
   }
 
-  win.on('resize', layoutSessions)
-  layoutSessions()
+  const layoutSessionsOnResize = (): void => {
+    const [, height] = win.getContentSize()
+    const current = sessions.getContentBounds()
+    sessions.setContentBounds({
+      x: current.x,
+      y: TOP_BAR_HEIGHT,
+      width: current.width,
+      height: Math.max(100, height - TOP_BAR_HEIGHT),
+    })
+  }
+
+  win.on('resize', layoutSessionsOnResize)
+  layoutSessionsFromConfig()
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
@@ -57,7 +68,7 @@ function createWindow(ctx: ReturnType<typeof createAppState>): BrowserWindow {
   }
 
   win.webContents.on('did-finish-load', () => {
-    layoutSessions()
+    layoutSessionsFromConfig()
     const config = ctx.getConfig()
     const { lastPlatform, lastAccountId } = config.prefs
     if (!lastAccountId) return

@@ -46,6 +46,9 @@ function normalizeConfig(raw: unknown): AppConfig {
     const v = (rawByPlatform as Record<string, unknown>)[id]
     if (v === null || typeof v === 'string') lastAccountIdByPlatform[id] = v
   }
+  if (lastAccountId && lastAccountIdByPlatform[lastPlatform] == null) {
+    lastAccountIdByPlatform[lastPlatform] = lastAccountId
+  }
 
   const sidebarWidth = clampSidebarWidth(
     obj.prefs && typeof (obj.prefs as { sidebarWidth?: unknown }).sidebarWidth === 'number'
