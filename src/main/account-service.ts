@@ -53,10 +53,15 @@ export function removeAccount(
   accountId: string,
 ): AppConfig {
   const accounts = config.platforms[platformId].accounts.filter((a) => a.id !== accountId)
-  const prefs =
-    config.prefs.lastAccountId === accountId
-      ? { ...config.prefs, lastAccountId: null }
-      : config.prefs
+  const lastAccountIdByPlatform = { ...config.prefs.lastAccountIdByPlatform }
+  if (lastAccountIdByPlatform[platformId] === accountId) {
+    lastAccountIdByPlatform[platformId] = null
+  }
+  const prefs = {
+    ...config.prefs,
+    lastAccountId: config.prefs.lastAccountId === accountId ? null : config.prefs.lastAccountId,
+    lastAccountIdByPlatform,
+  }
   return {
     ...config,
     prefs,

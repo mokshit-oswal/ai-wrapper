@@ -27,4 +27,20 @@ describe('account-service', () => {
     expect(config.platforms.claude.accounts).toHaveLength(0)
     expect(config.platforms.chatgpt.accounts).toHaveLength(1)
   })
+
+  it('clears lastAccountIdByPlatform when removing that account', () => {
+    let config = createDefaultConfig()
+    const { config: withAcct, account } = addAccount(config, 'claude', 'Work')
+    config = {
+      ...withAcct,
+      prefs: {
+        ...withAcct.prefs,
+        lastAccountId: account.id,
+        lastAccountIdByPlatform: { claude: account.id },
+      },
+    }
+    config = removeAccount(config, 'claude', account.id)
+    expect(config.prefs.lastAccountId).toBeNull()
+    expect(config.prefs.lastAccountIdByPlatform.claude).toBeNull()
+  })
 })
