@@ -115,15 +115,63 @@ export function registerIpc(ctx: AppContext): void {
 
   ipcMain.handle('sessions:show', (_e, platformId: PlatformId, accountId: string) => {
     const account = findAccount(ctx.getConfig(), platformId, accountId)
-    if (!account) return false
+    if (!account) return { ok: false as const, reason: 'Account not found' }
     const platform = PLATFORMS[platformId]
-    ctx.getSessions()?.showAccount(platformId, account, platform.url)
-    ctx.setConfig({
-      ...ctx.getConfig(),
-      prefs: { lastPlatform: platformId, lastAccountId: accountId },
-    })
-    ctx.persist()
-    ctx.broadcastConfig()
+    const result = ctx.getSessions()?.showAccount(platformId, account, platform.url) ?? {
+      ok: false as const,
+      reason: 'No session manager',
+    }
+    if (result.ok) {
+      ctx.setConfig({
+        ...ctx.getConfig(),
+        prefs: { lastPlatform: platformId, lastAccountId: accountId },
+      })
+      ctx.persist()
+      ctx.broadcastConfig()
+    }
+    return result
+  })
+
+  ipcMain.handle('sessions:enterSplit', () => {
+    return ctx.getSessions()?.enterSplit() ?? false
+  })
+
+  ipcMain.handle('sessions:exitSplit', () => {
+    ctx.getSessions()?.exitSplit()
+    return true
+  })
+
+  ipcMain.handle(
+    'sessions:setPane',
+    (_e, pane: 'left' | 'right', platformId: PlatformId, accountId: string) => {
+      const account = findAccount(ctx.getConfig(), platformId, accountId)
+      if (!account) return { ok: false as const, reason: 'Account not found' }
+      const platform = PLATFORMS[platformId]
+      const result = ctx.getSessions()?.setPane(pane, platformId, account, platform.url) ?? {
+        ok: false as const,
+        reason: 'No session manager',
+      }
+      if (result.ok && pane === 'left') {
+        ctx.setConfig({
+          ...ctx.getConfig(),
+          prefs: { lastPlatform: platformId, lastAccountId: accountId },
+        })
+        ctx.persist()
+        ctx.broadcastConfig()
+      }
+      return result
+    },
+  )
+
+  ipcMain.handle('sessions:setSplitRatio', (_e, ratio: number) => {
+    if (typeof ratio !== 'number' || Number.isNaN(ratio)) return false
+    ctx.getSessions()?.setSplitRatio(ratio)
+    return true
+  })
+
+  ipcMain.handle('sessions:focusPane', (_e, pane: 'left' | 'right') => {
+    if (pane !== 'left' && pane !== 'right') return false
+    ctx.getSessions()?.focusPane(pane)
     return true
   })
 

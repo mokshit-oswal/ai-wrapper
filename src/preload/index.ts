@@ -1,7 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PlatformId } from '../shared/platforms'
-import type { AppConfig, DirEntry, ReadTextResult, SearchHit, WorkspaceEntry, WorkspaceHealth } from '../shared/types'
+import type {
+  AppConfig,
+  DirEntry,
+  PaneId,
+  ReadTextResult,
+  SearchHit,
+  SessionActionResult,
+  WorkspaceEntry,
+  WorkspaceHealth,
+} from '../shared/types'
 import type { Account } from '../shared/types'
+
+export type { PaneId, SessionActionResult }
 
 export type AiWrapperApi = {
   getConfig: () => Promise<AppConfig>
@@ -10,7 +21,16 @@ export type AiWrapperApi = {
   renameAccount: (platformId: PlatformId, accountId: string, label: string) => Promise<boolean>
   removeAccount: (platformId: PlatformId, accountId: string) => Promise<boolean>
   clearAccountSession: (platformId: PlatformId, accountId: string) => Promise<boolean>
-  showAccount: (platformId: PlatformId, accountId: string) => Promise<boolean>
+  showAccount: (platformId: PlatformId, accountId: string) => Promise<SessionActionResult>
+  enterSplit: () => Promise<boolean>
+  exitSplit: () => Promise<boolean>
+  setPane: (
+    pane: PaneId,
+    platformId: PlatformId,
+    accountId: string,
+  ) => Promise<SessionActionResult>
+  setSplitRatio: (ratio: number) => Promise<boolean>
+  focusPane: (pane: PaneId) => Promise<boolean>
   setSessionBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<boolean>
   addWorkspace: () => Promise<WorkspaceEntry | null>
   removeWorkspace: (id: string) => Promise<boolean>
@@ -46,6 +66,12 @@ const api: AiWrapperApi = {
     ipcRenderer.invoke('accounts:clearSession', platformId, accountId),
   showAccount: (platformId, accountId) =>
     ipcRenderer.invoke('sessions:show', platformId, accountId),
+  enterSplit: () => ipcRenderer.invoke('sessions:enterSplit'),
+  exitSplit: () => ipcRenderer.invoke('sessions:exitSplit'),
+  setPane: (pane, platformId, accountId) =>
+    ipcRenderer.invoke('sessions:setPane', pane, platformId, accountId),
+  setSplitRatio: (ratio) => ipcRenderer.invoke('sessions:setSplitRatio', ratio),
+  focusPane: (pane) => ipcRenderer.invoke('sessions:focusPane', pane),
   setSessionBounds: (bounds) => ipcRenderer.invoke('sessions:setBounds', bounds),
   addWorkspace: () => ipcRenderer.invoke('workspace:add'),
   removeWorkspace: (id) => ipcRenderer.invoke('workspace:remove', id),
