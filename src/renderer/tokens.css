@@ -1,0 +1,87 @@
+/* Hallmark · tokens · theme: studied-DNA (dashboard reference)
+ * paper light-cool · soft geometric sans · near-black primary · green functional
+ */
+
+:root {
+  --color-paper: oklch(94.5% 0.006 260);
+  --color-paper-2: oklch(99% 0.003 260);
+  --color-paper-3: oklch(96% 0.005 260);
+  --color-ink: oklch(22% 0.012 260);
+  --color-ink-2: oklch(48% 0.01 260);
+  --color-ink-3: oklch(62% 0.008 260);
+  --color-rule: oklch(90% 0.006 260);
+  --color-rule-strong: oklch(84% 0.008 260);
+  --color-accent: oklch(22% 0.012 260);
+  --color-accent-soft: oklch(22% 0.012 260 / 0.06);
+  --color-accent-text: oklch(22% 0.012 260);
+  --color-on-accent: oklch(99% 0.002 260);
+  --color-focus: oklch(45% 0.12 260);
+  --color-positive: oklch(62% 0.16 145);
+  --color-positive-soft: oklch(62% 0.16 145 / 0.14);
+  --color-danger: oklch(55% 0.18 25);
+  --color-danger-soft: oklch(55% 0.18 25 / 0.1);
+  --color-warn: oklch(68% 0.14 55);
+  --color-warn-soft: oklch(68% 0.14 55 / 0.14);
+  --color-stage: oklch(18% 0.01 260);
+
+  --font-display: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-md: 0.8125rem;
+  --text-lg: 0.9375rem;
+  --text-xl: 1.125rem;
+  --text-brand: 1.05rem;
+
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+
+  --sidebar: 220px;
+  --topbar-height: 64px;
+  --handle: 6px;
+  --stage-inset: 12px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --shadow-card: 0 8px 28px oklch(22% 0.012 260 / 0.06);
+  --shadow-soft: 0 2px 10px oklch(22% 0.012 260 / 0.04);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-paper: oklch(18% 0.012 260);
+  --color-paper-2: oklch(22% 0.012 260);
+  --color-paper-3: oklch(26% 0.012 260);
+  --color-ink: oklch(96% 0.006 260);
+  --color-ink-2: oklch(78% 0.01 260);
+  --color-ink-3: oklch(62% 0.01 260);
+  --color-rule: oklch(32% 0.012 260);
+  --color-rule-strong: oklch(40% 0.012 260);
+  --color-accent: oklch(92% 0.01 260);
+  --color-accent-soft: oklch(92% 0.01 260 / 0.1);
+  --color-accent-text: oklch(96% 0.006 260);
+  --color-on-accent: oklch(18% 0.012 260);
+  --color-focus: oklch(72% 0.08 260);
+  --color-positive: oklch(72% 0.16 145);
+  --color-positive-soft: oklch(72% 0.16 145 / 0.18);
+  --color-danger: oklch(68% 0.16 25);
+  --color-danger-soft: oklch(68% 0.16 25 / 0.16);
+  --color-warn: oklch(76% 0.12 55);
+  --color-warn-soft: oklch(76% 0.12 55 / 0.16);
+  --color-stage: oklch(12% 0.01 260);
+  --shadow-card: 0 8px 28px oklch(0% 0 0 / 0.35);
+  --shadow-soft: 0 2px 10px oklch(0% 0 0 / 0.25);
+}

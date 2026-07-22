@@ -1,6 +1,6 @@
 # AI Wrapper
 
-Personal free Mac desktop app: multi-account ChatGPT / Claude / Gemini / OpenAI Platform sessions, plus local workspace read/search and manual file assist.
+Personal free Mac desktop app: multi-account ChatGPT / Claude / Gemini / Perplexity / Groq sessions, plus local workspace read/search and manual file assist.
 
 ## Setup (development)
 

@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PlatformId } from '../shared/platforms'
-import type { AppConfig, DirEntry, ReadTextResult, SearchHit, WorkspaceEntry, WorkspaceHealth } from '../shared/types'
+import type {
+  AppConfig,
+  DirEntry,
+  ReadTextResult,
+  SearchHit,
+  ThemeMode,
+  WorkspaceEntry,
+  WorkspaceHealth,
+} from '../shared/types'
 import type { Account } from '../shared/types'
 
 export type AiWrapperApi = {
@@ -12,6 +20,7 @@ export type AiWrapperApi = {
   clearAccountSession: (platformId: PlatformId, accountId: string) => Promise<boolean>
   showAccount: (platformId: PlatformId, accountId: string) => Promise<boolean>
   setSidebarWidth: (width: number) => Promise<number>
+  setThemeMode: (mode: ThemeMode) => Promise<ThemeMode>
   setSessionBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<boolean>
   addWorkspace: () => Promise<WorkspaceEntry | null>
   removeWorkspace: (id: string) => Promise<boolean>
@@ -48,6 +57,7 @@ const api: AiWrapperApi = {
   showAccount: (platformId, accountId) =>
     ipcRenderer.invoke('sessions:show', platformId, accountId),
   setSidebarWidth: (width) => ipcRenderer.invoke('prefs:setSidebarWidth', width),
+  setThemeMode: (mode) => ipcRenderer.invoke('prefs:setThemeMode', mode),
   setSessionBounds: (bounds) => ipcRenderer.invoke('sessions:setBounds', bounds),
   addWorkspace: () => ipcRenderer.invoke('workspace:add'),
   removeWorkspace: (id) => ipcRenderer.invoke('workspace:remove', id),

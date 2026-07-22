@@ -1,4 +1,4 @@
-export type PlatformId = 'chatgpt' | 'claude' | 'gemini' | 'openai_platform'
+export type PlatformId = 'chatgpt' | 'claude' | 'gemini' | 'perplexity' | 'groq'
 
 export const PLATFORMS: Record<
   PlatformId,
@@ -7,11 +7,12 @@ export const PLATFORMS: Record<
   chatgpt: { id: 'chatgpt', label: 'ChatGPT', url: 'https://chatgpt.com' },
   claude: { id: 'claude', label: 'Claude', url: 'https://claude.ai' },
   gemini: { id: 'gemini', label: 'Gemini', url: 'https://gemini.google.com' },
-  openai_platform: {
-    id: 'openai_platform',
-    label: 'OpenAI Platform',
-    url: 'https://platform.openai.com',
+  perplexity: {
+    id: 'perplexity',
+    label: 'Perplexity',
+    url: 'https://www.perplexity.ai',
   },
+  groq: { id: 'groq', label: 'Groq', url: 'https://chat.groq.com' },
 }
 
 export function platformIds(): PlatformId[] {

@@ -52,7 +52,11 @@ describe('config-store', () => {
     const loaded = loadConfig(file)
     expect(loaded.prefs.lastPlatform).toBe('claude')
     expect(loaded.prefs.lastAccountIdByPlatform).toEqual({})
-    expect(loaded.prefs.sidebarWidth).toBe(280)
+    expect(loaded.prefs.sidebarWidth).toBe(220)
+    expect(loaded.prefs.themeMode).toBe('light')
+    expect(loaded.platforms.perplexity.accounts).toEqual([])
+    expect(loaded.platforms.groq.accounts).toEqual([])
+    expect(loaded.platforms).not.toHaveProperty('openai_platform')
   })
 
   it('seeds lastAccountIdByPlatform from legacy lastAccountId', () => {
@@ -87,6 +91,22 @@ describe('config-store', () => {
       JSON.stringify({ ...base, prefs: { ...base.prefs, sidebarWidth: 50 } }),
       'utf8',
     )
-    expect(loadConfig(file).prefs.sidebarWidth).toBe(200)
+    expect(loadConfig(file).prefs.sidebarWidth).toBe(180)
+  })
+
+  it('loads and clamps themeMode', () => {
+    const base = createDefaultConfig()
+    fs.writeFileSync(
+      file,
+      JSON.stringify({ ...base, prefs: { ...base.prefs, themeMode: 'dark' } }),
+      'utf8',
+    )
+    expect(loadConfig(file).prefs.themeMode).toBe('dark')
+    fs.writeFileSync(
+      file,
+      JSON.stringify({ ...base, prefs: { ...base.prefs, themeMode: 'neon' } }),
+      'utf8',
+    )
+    expect(loadConfig(file).prefs.themeMode).toBe('light')
   })
 })

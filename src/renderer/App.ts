@@ -4,59 +4,58 @@ import {
   formatAccountLabel,
   resolveAccountForPlatform,
 } from '../shared/accounts-view'
-import { TOP_BAR_HEIGHT, clampSidebarWidth } from '../shared/layout'
+import { clampSidebarWidth, sessionContentBounds } from '../shared/layout'
 import { PLATFORMS, platformIds, type PlatformId } from '../shared/platforms'
-import type { AppConfig, DirEntry, SearchHit } from '../shared/types'
+import type { AppConfig, ThemeMode } from '../shared/types'
 
 export async function mountApp(root: HTMLElement): Promise<void> {
   if (!window.api) {
-    root.innerHTML = `<p style="padding:16px;color:#b42318">Shell API failed to load (preload). Restart the app.</p>`
+    root.innerHTML = `<p style="padding:16px;color:var(--color-danger, #b42318)">Shell API failed to load (preload). Restart the app.</p>`
     throw new Error('window.api is missing — preload did not load')
   }
 
   root.innerHTML = `
     <div class="shell">
-      <header class="topbar" id="topbar">
-        <div class="topbar-brand">AI Wrapper</div>
-        <label class="topbar-field">
-          <span>Platform</span>
-          <select id="add-platform"></select>
-        </label>
-        <input type="text" id="account-label" placeholder="Account label" value="Personal" />
-        <button class="action primary" id="add-account" type="button">Add</button>
-        <button class="action" id="rename-account" type="button">Rename</button>
-        <button class="action danger" id="remove-account" type="button">Remove</button>
-        <button class="action danger" id="clear-session" type="button">Clear session</button>
-        <p class="status" id="status">Ready</p>
-      </header>
-      <div class="shell-body">
-        <aside class="sidebar" id="sidebar">
-          <section class="platforms">
-            <h2 class="section-title">Platforms</h2>
-            <div id="platform-list"></div>
-          </section>
-          <section class="accounts">
-            <h2 class="section-title">All accounts</h2>
-            <div id="account-list"></div>
-          </section>
-          <section class="workspace">
-            <h2 class="section-title">Workspace</h2>
-            <div id="workspace-list"></div>
-            <div class="row">
-              <button class="action" id="add-workspace" type="button">Add folder</button>
-              <button class="action danger" id="remove-workspace" type="button">Remove folder</button>
-            </div>
-            <input type="search" id="search" placeholder="Search files…" />
-            <div class="list" id="file-list"></div>
-            <div class="row">
-              <button class="action" id="copy-path" type="button">Copy path</button>
-              <button class="action" id="copy-contents" type="button">Copy contents</button>
-              <button class="action" id="prepare-attach" type="button">Prepare attach</button>
-            </div>
-          </section>
-        </aside>
-        <div class="resize-handle" id="resize-handle" role="separator" aria-orientation="vertical"></div>
-        <div class="webview-slot" id="webview-slot" aria-hidden="true"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="rail-brand">AI Wrapper</div>
+        <section class="rail-section platforms">
+          <h2 class="section-title">Platforms</h2>
+          <div id="platform-list"></div>
+        </section>
+        <section class="rail-section accounts">
+          <div class="rail-section-head">
+            <h2 class="section-title">Accounts</h2>
+            <details class="manage" id="account-manage">
+              <summary class="manage-toggle">Manage</summary>
+              <div class="manage-menu">
+                <button class="action" id="rename-account" type="button">Rename</button>
+                <button class="action danger" id="remove-account" type="button">Remove</button>
+                <button class="action danger" id="clear-session" type="button">Clear session</button>
+              </div>
+            </details>
+          </div>
+          <div id="account-list"></div>
+        </section>
+        <div class="rail-footer">
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
+            Dark mode
+          </button>
+        </div>
+      </aside>
+      <div class="resize-handle" id="resize-handle" role="separator" aria-orientation="vertical" tabindex="0"></div>
+      <div class="main-column">
+        <header class="topbar" id="topbar">
+          <div class="topbar-title">Session</div>
+          <div class="topbar-add">
+            <select id="add-platform" aria-label="Platform for new account"></select>
+            <input type="text" id="account-label" placeholder="Label" value="Personal" />
+            <button class="action primary" id="add-account" type="button">Add</button>
+          </div>
+          <p class="status" id="status">Ready</p>
+        </header>
+        <div class="stage-frame">
+          <div class="webview-slot" id="webview-slot" aria-hidden="true"></div>
+        </div>
       </div>
     </div>
   `
@@ -65,13 +64,22 @@ export async function mountApp(root: HTMLElement): Promise<void> {
   let sidebarWidth = clampSidebarWidth(config.prefs.sidebarWidth)
   let platformId: PlatformId = config.prefs.lastPlatform
   let accountId: string | null = config.prefs.lastAccountId
-  let selectedWorkspaceId: string | null = config.workspaces[0]?.id ?? null
-  let selectedFile: string | null = null
-  let fileRows: Array<{ path: string; label: string }> = []
+  let themeMode: ThemeMode = config.prefs.themeMode
 
   const statusEl = root.querySelector('#status') as HTMLElement
   const labelInput = root.querySelector('#account-label') as HTMLInputElement
   const addPlatformSelect = root.querySelector('#add-platform') as HTMLSelectElement
+  const themeToggle = root.querySelector('#theme-toggle') as HTMLButtonElement
+
+  function applyTheme(mode: ThemeMode): void {
+    themeMode = mode
+    document.documentElement.dataset.theme = mode
+    const dark = mode === 'dark'
+    themeToggle.setAttribute('aria-pressed', dark ? 'true' : 'false')
+    themeToggle.textContent = dark ? 'Light mode' : 'Dark mode'
+  }
+
+  applyTheme(themeMode)
 
   addPlatformSelect.innerHTML = platformIds()
     .map((id) => `<option value="${id}">${PLATFORMS[id].label}</option>`)
@@ -83,31 +91,15 @@ export async function mountApp(root: HTMLElement): Promise<void> {
   }
 
   function reportBounds(): void {
-    const height = Math.max(100, window.innerHeight - TOP_BAR_HEIGHT)
-    const width = Math.max(100, window.innerWidth - sidebarWidth)
-    void window.api.setSessionBounds({
-      x: sidebarWidth,
-      y: TOP_BAR_HEIGHT,
-      width,
-      height,
-    })
+    void window.api.setSessionBounds(
+      sessionContentBounds(window.innerWidth, window.innerHeight, sidebarWidth),
+    )
   }
 
   function applySidebarWidth(px: number): void {
     sidebarWidth = clampSidebarWidth(px)
     root.style.setProperty('--sidebar', `${sidebarWidth}px`)
     reportBounds()
-  }
-
-  async function refreshHealth(container: HTMLElement): Promise<void> {
-    for (const ws of config.workspaces) {
-      const health = await window.api.workspaceHealth(ws.path)
-      const el = container.querySelector(`[data-ws="${ws.id}"] .health`)
-      if (el) {
-        el.textContent = health === 'ok' ? '' : ` (${health})`
-        el.className = health === 'ok' ? 'health' : 'health health-bad'
-      }
-    }
   }
 
   function renderPlatforms(): void {
@@ -136,14 +128,16 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     const list = root.querySelector('#account-list')!
     const flat = flattenAccounts(config)
     if (flat.length === 0) {
-      list.innerHTML = `<p class="status">No accounts yet. Choose a platform, enter a label, and click Add.</p>`
+      list.innerHTML = `<p class="status">No accounts yet. Pick a platform, set a label, and Add.</p>`
       return
     }
     list.innerHTML = flat
       .map(({ platformId: pid, account: a }) => {
         const active = a.id === accountId && pid === platformId ? 'active' : ''
         const text = formatAccountLabel(pid, a.label)
-        return `<button type="button" class="account-btn ${active}" data-id="${a.id}" data-platform="${pid}">${escapeHtml(text)}</button>`
+        const badge =
+          active === 'active' ? `<span class="badge badge-active">Active</span>` : ''
+        return `<button type="button" class="account-btn ${active}" data-id="${a.id}" data-platform="${pid}"><span>${escapeHtml(text)}</span> ${badge}</button>`
       })
       .join('')
     list.querySelectorAll('button').forEach((btn) => {
@@ -164,66 +158,9 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     })
   }
 
-  function renderWorkspaces(): void {
-    const list = root.querySelector('#workspace-list')!
-    if (config.workspaces.length === 0) {
-      list.innerHTML = `<p class="status">No folders granted.</p>`
-      return
-    }
-    list.innerHTML = config.workspaces
-      .map((w) => {
-        const active = w.id === selectedWorkspaceId ? 'active' : ''
-        return `<button type="button" class="account-btn ${active}" data-ws="${w.id}">${escapeHtml(w.path)}<span class="health"></span></button>`
-      })
-      .join('')
-    list.querySelectorAll('button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        selectedWorkspaceId = (btn as HTMLButtonElement).dataset.ws!
-        void loadFiles()
-        renderWorkspaces()
-      })
-    })
-    void refreshHealth(list as HTMLElement)
-  }
-
-  async function loadFiles(query = ''): Promise<void> {
-    const box = root.querySelector('#file-list')!
-    try {
-      if (query.trim()) {
-        const hits: SearchHit[] = await window.api.search(query.trim())
-        fileRows = hits.map((h) => ({
-          path: h.path,
-          label: `${h.matchType}: ${h.path}`,
-        }))
-      } else {
-        const entries: DirEntry[] = await window.api.listDir('')
-        fileRows = entries.map((e) => ({
-          path: e.path,
-          label: `${e.isDirectory ? '[dir] ' : ''}${e.name}`,
-        }))
-      }
-    } catch (err) {
-      setStatus(`Workspace error: ${String(err)}`)
-      fileRows = []
-    }
-    box.innerHTML = fileRows
-      .map(
-        (r) =>
-          `<button type="button" data-path="${escapeAttr(r.path)}" class="${r.path === selectedFile ? 'selected' : ''}">${escapeHtml(r.label)}</button>`,
-      )
-      .join('')
-    box.querySelectorAll('button').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        selectedFile = (btn as HTMLButtonElement).dataset.path!
-        void loadFiles((root.querySelector('#search') as HTMLInputElement).value)
-      })
-    })
-  }
-
   function render(): void {
     renderPlatforms()
     renderAccounts()
-    renderWorkspaces()
   }
 
   root.querySelector('#add-account')!.addEventListener('click', async () => {
@@ -237,7 +174,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
       accountId = account.id
       config = await window.api.getConfig()
       reportBounds()
-      await window.api.showAccount(platformId, accountId)
+      await window.api.showAccount(platformId, account.id)
       setStatus(`Added “${account.label}” — sign in with Google in the webview`)
       render()
     } catch (err) {
@@ -255,7 +192,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     }
     const label = labelInput.value.trim()
     if (!label) {
-      setStatus('Enter a label first')
+      setStatus('Enter a label in the top bar first')
       return
     }
     try {
@@ -321,59 +258,18 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     }
   })
 
-  root.querySelector('#add-workspace')!.addEventListener('click', async () => {
+  themeToggle.addEventListener('click', async () => {
+    const next: ThemeMode = themeMode === 'dark' ? 'light' : 'dark'
+    applyTheme(next)
     try {
-      const ws = await window.api.addWorkspace()
-      config = await window.api.getConfig()
-      if (ws) selectedWorkspaceId = ws.id
-      await loadFiles()
-      render()
-      setStatus(ws ? 'Folder added' : 'Add folder canceled')
+      const saved = await window.api.setThemeMode(next)
+      applyTheme(saved)
+      setStatus(saved === 'dark' ? 'Dark mode' : 'Light mode')
     } catch (err) {
-      setStatus(`Add folder failed: ${String(err)}`)
+      // Theme already applied locally; persistence needs a main-process restart after upgrades.
+      console.warn('Theme preference not saved:', err)
+      setStatus(next === 'dark' ? 'Dark mode (not saved — restart app)' : 'Light mode (not saved — restart app)')
     }
-  })
-
-  root.querySelector('#remove-workspace')!.addEventListener('click', async () => {
-    if (!selectedWorkspaceId) {
-      setStatus('Select a folder to remove')
-      return
-    }
-    try {
-      await window.api.removeWorkspace(selectedWorkspaceId)
-      config = await window.api.getConfig()
-      selectedWorkspaceId = config.workspaces[0]?.id ?? null
-      await loadFiles()
-      render()
-      setStatus('Folder removed')
-    } catch (err) {
-      setStatus(`Remove folder failed: ${String(err)}`)
-    }
-  })
-
-  let searchTimer: ReturnType<typeof setTimeout> | null = null
-  root.querySelector('#search')!.addEventListener('input', (e) => {
-    const q = (e.target as HTMLInputElement).value
-    if (searchTimer) clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => void loadFiles(q), 200)
-  })
-
-  root.querySelector('#copy-path')!.addEventListener('click', async () => {
-    if (!selectedFile) return setStatus('Select a file first')
-    await window.api.copyPath(selectedFile)
-    setStatus('Path copied')
-  })
-
-  root.querySelector('#copy-contents')!.addEventListener('click', async () => {
-    if (!selectedFile) return setStatus('Select a file first')
-    const result = await window.api.copyContents(selectedFile)
-    setStatus(result.ok ? 'Contents copied' : result.reason)
-  })
-
-  root.querySelector('#prepare-attach')!.addEventListener('click', async () => {
-    if (!selectedFile) return setStatus('Select a file first')
-    const result = await window.api.prepareAttach([selectedFile])
-    setStatus(result.ok ? result.message : result.reason)
   })
 
   const resizeHandle = root.querySelector('#resize-handle')!
@@ -399,15 +295,15 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     window.addEventListener('pointercancel', onUp)
   })
 
-  window.api.onConfigUpdated((next) => {
+  window.api.onConfigUpdated((next: AppConfig) => {
     config = next
+    applyTheme(next.prefs.themeMode)
     render()
   })
 
   window.addEventListener('resize', reportBounds)
   applySidebarWidth(config.prefs.sidebarWidth)
   render()
-  await loadFiles()
 
   if (accountId) {
     const selected = config.platforms[platformId].accounts.find((a) => a.id === accountId)
@@ -424,8 +320,4 @@ function escapeHtml(value: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
-}
-
-function escapeAttr(value: string): string {
-  return escapeHtml(value).replaceAll("'", '&#39;')
 }

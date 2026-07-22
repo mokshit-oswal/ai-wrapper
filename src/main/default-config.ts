@@ -15,6 +15,7 @@ export function createDefaultConfig(): AppConfig {
       lastAccountId: null,
       lastAccountIdByPlatform: {},
       sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
+      themeMode: 'light',
     },
   }
 }

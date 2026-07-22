@@ -11,6 +11,8 @@ export type WorkspaceEntry = {
   path: string
 }
 
+export type ThemeMode = 'light' | 'dark'
+
 export type AppConfig = {
   workspaces: WorkspaceEntry[]
   platforms: Record<PlatformId, { accounts: Account[] }>
@@ -19,6 +21,7 @@ export type AppConfig = {
     lastAccountId: string | null
     lastAccountIdByPlatform: Partial<Record<PlatformId, string | null>>
     sidebarWidth: number
+    themeMode: ThemeMode
   }
 }
 

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { attachWindow, createAppState, registerIpc } from './ipc'
 import { SessionManager } from './session-manager'
 import { PLATFORMS } from '../shared/platforms'
-import { TOP_BAR_HEIGHT, clampSidebarWidth } from '../shared/layout'
+import { clampSidebarWidth, sessionContentBounds } from '../shared/layout'
 
 if (process.env.AI_WRAPPER_USER_DATA) {
   app.setPath('userData', process.env.AI_WRAPPER_USER_DATA)
@@ -34,23 +34,13 @@ function createWindow(ctx: ReturnType<typeof createAppState>): BrowserWindow {
   const layoutSessionsFromConfig = (): void => {
     const [width, height] = win.getContentSize()
     const sidebarWidth = clampSidebarWidth(ctx.getConfig().prefs.sidebarWidth)
-    sessions.setContentBounds({
-      x: sidebarWidth,
-      y: TOP_BAR_HEIGHT,
-      width: Math.max(100, width - sidebarWidth),
-      height: Math.max(100, height - TOP_BAR_HEIGHT),
-    })
+    sessions.setContentBounds(sessionContentBounds(width, height, sidebarWidth))
   }
 
   const layoutSessionsOnResize = (): void => {
-    const [, height] = win.getContentSize()
-    const current = sessions.getContentBounds()
-    sessions.setContentBounds({
-      x: current.x,
-      y: TOP_BAR_HEIGHT,
-      width: current.width,
-      height: Math.max(100, height - TOP_BAR_HEIGHT),
-    })
+    const [width, height] = win.getContentSize()
+    const sidebarWidth = clampSidebarWidth(ctx.getConfig().prefs.sidebarWidth)
+    sessions.setContentBounds(sessionContentBounds(width, height, sidebarWidth))
   }
 
   win.on('resize', layoutSessionsOnResize)

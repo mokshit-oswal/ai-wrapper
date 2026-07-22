@@ -149,6 +149,18 @@ export function registerIpc(ctx: AppContext): void {
     return sidebarWidth
   })
 
+  ipcMain.handle('prefs:setThemeMode', (_e, mode: unknown) => {
+    const themeMode = mode === 'dark' ? 'dark' : 'light'
+    const prev = ctx.getConfig()
+    ctx.setConfig({
+      ...prev,
+      prefs: { ...prev.prefs, themeMode },
+    })
+    ctx.persist()
+    ctx.broadcastConfig()
+    return themeMode
+  })
+
   ipcMain.handle(
     'sessions:setBounds',
     (_e, bounds: { x: number; y: number; width: number; height: number }) => {

@@ -3,7 +3,11 @@ import path from 'node:path'
 import { createDefaultConfig, isPlatformId } from './default-config'
 import { clampSidebarWidth, DEFAULT_SIDEBAR_WIDTH } from '../shared/layout'
 import { platformIds, type PlatformId } from '../shared/platforms'
-import type { AppConfig } from '../shared/types'
+import type { AppConfig, ThemeMode } from '../shared/types'
+
+function normalizeThemeMode(value: unknown): ThemeMode {
+  return value === 'dark' ? 'dark' : 'light'
+}
 
 function normalizeConfig(raw: unknown): AppConfig {
   const fallback = createDefaultConfig()
@@ -56,10 +60,16 @@ function normalizeConfig(raw: unknown): AppConfig {
       : DEFAULT_SIDEBAR_WIDTH,
   )
 
+  const themeMode = normalizeThemeMode(
+    obj.prefs && typeof obj.prefs === 'object'
+      ? (obj.prefs as { themeMode?: unknown }).themeMode
+      : undefined,
+  )
+
   return {
     workspaces,
     platforms,
-    prefs: { lastPlatform, lastAccountId, lastAccountIdByPlatform, sidebarWidth },
+    prefs: { lastPlatform, lastAccountId, lastAccountIdByPlatform, sidebarWidth, themeMode },
   }
 }
 

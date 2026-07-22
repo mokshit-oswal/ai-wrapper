@@ -18,6 +18,7 @@ export type AiWrapperApi = {
   clearAccountSession: (platformId: PlatformId, accountId: string) => Promise<boolean>
   showAccount: (platformId: PlatformId, accountId: string) => Promise<boolean>
   setSidebarWidth: (width: number) => Promise<number>
+  setThemeMode: (mode: import('../shared/types').ThemeMode) => Promise<import('../shared/types').ThemeMode>
   setSessionBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<boolean>
   addWorkspace: () => Promise<WorkspaceEntry | null>
   removeWorkspace: (id: string) => Promise<boolean>
