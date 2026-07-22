@@ -3,8 +3,7 @@ import { join } from 'node:path'
 import { attachWindow, createAppState, registerIpc } from './ipc'
 import { SessionManager } from './session-manager'
 import { PLATFORMS } from '../shared/platforms'
-
-const SIDEBAR_WIDTH = 320
+import { TOP_BAR_HEIGHT, clampSidebarWidth } from '../shared/layout'
 
 if (process.env.AI_WRAPPER_USER_DATA) {
   app.setPath('userData', process.env.AI_WRAPPER_USER_DATA)
@@ -34,11 +33,12 @@ function createWindow(ctx: ReturnType<typeof createAppState>): BrowserWindow {
 
   const layoutSessions = (): void => {
     const [width, height] = win.getContentSize()
+    const sidebarWidth = clampSidebarWidth(ctx.getConfig().prefs.sidebarWidth)
     sessions.setContentBounds({
-      x: SIDEBAR_WIDTH,
-      y: 0,
-      width: Math.max(100, width - SIDEBAR_WIDTH),
-      height,
+      x: sidebarWidth,
+      y: TOP_BAR_HEIGHT,
+      width: Math.max(100, width - sidebarWidth),
+      height: Math.max(100, height - TOP_BAR_HEIGHT),
     })
   }
 
