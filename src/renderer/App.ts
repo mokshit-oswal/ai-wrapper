@@ -1,8 +1,12 @@
 import './styles.css'
+import {
+  flattenAccounts,
+  formatAccountLabel,
+  resolveAccountForPlatform,
+} from '../shared/accounts-view'
+import { TOP_BAR_HEIGHT, clampSidebarWidth } from '../shared/layout'
 import { PLATFORMS, platformIds, type PlatformId } from '../shared/platforms'
 import type { AppConfig, DirEntry, SearchHit } from '../shared/types'
-
-export const SIDEBAR_WIDTH = 320
 
 export async function mountApp(root: HTMLElement): Promise<void> {
   if (!window.api) {
@@ -12,49 +16,53 @@ export async function mountApp(root: HTMLElement): Promise<void> {
 
   root.innerHTML = `
     <div class="shell">
-      <aside class="sidebar">
-        <div>
-          <h1 style="margin:0;font-size:16px;">AI Wrapper</h1>
-          <p class="status" id="status">Ready</p>
-        </div>
-        <section class="platforms">
-          <h2 class="section-title">Platforms</h2>
-          <div id="platform-list"></div>
-        </section>
-        <section class="accounts">
-          <h2 class="section-title">Accounts</h2>
-          <div id="account-list"></div>
-          <div class="inline-form" id="account-form">
-            <input type="text" id="account-label" placeholder="Account label" value="Personal" />
+      <header class="topbar" id="topbar">
+        <div class="topbar-brand">AI Wrapper</div>
+        <label class="topbar-field">
+          <span>Platform</span>
+          <select id="add-platform"></select>
+        </label>
+        <input type="text" id="account-label" placeholder="Account label" value="Personal" />
+        <button class="action primary" id="add-account" type="button">Add</button>
+        <button class="action" id="rename-account" type="button">Rename</button>
+        <button class="action danger" id="remove-account" type="button">Remove</button>
+        <button class="action danger" id="clear-session" type="button">Clear session</button>
+        <p class="status" id="status">Ready</p>
+      </header>
+      <div class="shell-body">
+        <aside class="sidebar" id="sidebar">
+          <section class="platforms">
+            <h2 class="section-title">Platforms</h2>
+            <div id="platform-list"></div>
+          </section>
+          <section class="accounts">
+            <h2 class="section-title">All accounts</h2>
+            <div id="account-list"></div>
+          </section>
+          <section class="workspace">
+            <h2 class="section-title">Workspace</h2>
+            <div id="workspace-list"></div>
             <div class="row">
-              <button class="action primary" id="add-account" type="button">Add account</button>
-              <button class="action" id="rename-account" type="button">Rename</button>
-              <button class="action danger" id="remove-account" type="button">Remove</button>
-              <button class="action danger" id="clear-session" type="button">Clear session</button>
+              <button class="action" id="add-workspace" type="button">Add folder</button>
+              <button class="action danger" id="remove-workspace" type="button">Remove folder</button>
             </div>
-          </div>
-        </section>
-        <section class="workspace">
-          <h2 class="section-title">Workspace</h2>
-          <div id="workspace-list"></div>
-          <div class="row">
-            <button class="action" id="add-workspace" type="button">Add folder</button>
-            <button class="action danger" id="remove-workspace" type="button">Remove folder</button>
-          </div>
-          <input type="search" id="search" placeholder="Search files…" />
-          <div class="list" id="file-list"></div>
-          <div class="row">
-            <button class="action" id="copy-path" type="button">Copy path</button>
-            <button class="action" id="copy-contents" type="button">Copy contents</button>
-            <button class="action" id="prepare-attach" type="button">Prepare attach</button>
-          </div>
-        </section>
-      </aside>
-      <div class="webview-slot" id="webview-slot" aria-hidden="true"></div>
+            <input type="search" id="search" placeholder="Search files…" />
+            <div class="list" id="file-list"></div>
+            <div class="row">
+              <button class="action" id="copy-path" type="button">Copy path</button>
+              <button class="action" id="copy-contents" type="button">Copy contents</button>
+              <button class="action" id="prepare-attach" type="button">Prepare attach</button>
+            </div>
+          </section>
+        </aside>
+        <div class="resize-handle" id="resize-handle" role="separator" aria-orientation="vertical"></div>
+        <div class="webview-slot" id="webview-slot" aria-hidden="true"></div>
+      </div>
     </div>
   `
 
   let config: AppConfig = await window.api.getConfig()
+  let sidebarWidth = clampSidebarWidth(config.prefs.sidebarWidth)
   let platformId: PlatformId = config.prefs.lastPlatform
   let accountId: string | null = config.prefs.lastAccountId
   let selectedWorkspaceId: string | null = config.workspaces[0]?.id ?? null
@@ -63,15 +71,32 @@ export async function mountApp(root: HTMLElement): Promise<void> {
 
   const statusEl = root.querySelector('#status') as HTMLElement
   const labelInput = root.querySelector('#account-label') as HTMLInputElement
+  const addPlatformSelect = root.querySelector('#add-platform') as HTMLSelectElement
+
+  addPlatformSelect.innerHTML = platformIds()
+    .map((id) => `<option value="${id}">${PLATFORMS[id].label}</option>`)
+    .join('')
+  addPlatformSelect.value = platformId
 
   function setStatus(msg: string): void {
     statusEl.textContent = msg
   }
 
   function reportBounds(): void {
-    const height = window.innerHeight
-    const width = Math.max(100, window.innerWidth - SIDEBAR_WIDTH)
-    void window.api.setSessionBounds({ x: SIDEBAR_WIDTH, y: 0, width, height })
+    const height = Math.max(100, window.innerHeight - TOP_BAR_HEIGHT)
+    const width = Math.max(100, window.innerWidth - sidebarWidth)
+    void window.api.setSessionBounds({
+      x: sidebarWidth,
+      y: TOP_BAR_HEIGHT,
+      width,
+      height,
+    })
+  }
+
+  function applySidebarWidth(px: number): void {
+    sidebarWidth = clampSidebarWidth(px)
+    root.style.setProperty('--sidebar', `${sidebarWidth}px`)
+    reportBounds()
   }
 
   async function refreshHealth(container: HTMLElement): Promise<void> {
@@ -97,9 +122,10 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     list.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
         platformId = (btn as HTMLButtonElement).dataset.id as PlatformId
-        accountId = config.platforms[platformId].accounts[0]?.id ?? null
-        const selected = config.platforms[platformId].accounts.find((a) => a.id === accountId)
-        labelInput.value = selected?.label ?? 'Personal'
+        const resolved = resolveAccountForPlatform(config, platformId)
+        accountId = resolved?.id ?? null
+        labelInput.value = resolved?.label ?? 'Personal'
+        addPlatformSelect.value = platformId
         render()
         if (accountId) void window.api.showAccount(platformId, accountId)
       })
@@ -108,25 +134,28 @@ export async function mountApp(root: HTMLElement): Promise<void> {
 
   function renderAccounts(): void {
     const list = root.querySelector('#account-list')!
-    const accounts = config.platforms[platformId].accounts
-    if (accounts.length === 0) {
-      list.innerHTML = `<p class="status">No accounts yet. Enter a label and click Add account.</p>`
+    const flat = flattenAccounts(config)
+    if (flat.length === 0) {
+      list.innerHTML = `<p class="status">No accounts yet. Choose a platform, enter a label, and click Add.</p>`
       return
     }
-    list.innerHTML = accounts
-      .map((a) => {
-        const active = a.id === accountId ? 'active' : ''
-        return `<button type="button" class="account-btn ${active}" data-id="${a.id}">${escapeHtml(a.label)}</button>`
+    list.innerHTML = flat
+      .map(({ platformId: pid, account: a }) => {
+        const active = a.id === accountId && pid === platformId ? 'active' : ''
+        const text = formatAccountLabel(pid, a.label)
+        return `<button type="button" class="account-btn ${active}" data-id="${a.id}" data-platform="${pid}">${escapeHtml(text)}</button>`
       })
       .join('')
     list.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', async () => {
+        platformId = (btn as HTMLButtonElement).dataset.platform as PlatformId
         accountId = (btn as HTMLButtonElement).dataset.id!
         const selected = config.platforms[platformId].accounts.find((a) => a.id === accountId)
         labelInput.value = selected?.label ?? 'Personal'
+        addPlatformSelect.value = platformId
         try {
           await window.api.showAccount(platformId, accountId)
-          setStatus(`Showing ${PLATFORMS[platformId].label}`)
+          setStatus(`Showing ${formatAccountLabel(platformId, selected?.label ?? '')}`)
         } catch (err) {
           setStatus(`Failed to show account: ${String(err)}`)
         }
@@ -199,10 +228,12 @@ export async function mountApp(root: HTMLElement): Promise<void> {
 
   root.querySelector('#add-account')!.addEventListener('click', async () => {
     const label = labelInput.value.trim() || 'Personal'
+    const targetPlatform = addPlatformSelect.value as PlatformId
     const btn = root.querySelector('#add-account') as HTMLButtonElement
     btn.disabled = true
     try {
-      const account = await window.api.addAccount(platformId, label)
+      const account = await window.api.addAccount(targetPlatform, label)
+      platformId = targetPlatform
       accountId = account.id
       config = await window.api.getConfig()
       reportBounds()
@@ -249,9 +280,22 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     try {
       await window.api.removeAccount(platformId, accountId)
       config = await window.api.getConfig()
-      accountId = config.platforms[platformId].accounts[0]?.id ?? null
+      const samePlatform = config.platforms[platformId].accounts[0]
+      if (samePlatform) {
+        accountId = samePlatform.id
+      } else {
+        const next = flattenAccounts(config)[0]
+        if (next) {
+          platformId = next.platformId
+          accountId = next.account.id
+        } else {
+          accountId = null
+        }
+      }
       labelInput.value =
-        config.platforms[platformId].accounts.find((a) => a.id === accountId)?.label ?? 'Personal'
+        (accountId &&
+          config.platforms[platformId].accounts.find((a) => a.id === accountId)?.label) ||
+        'Personal'
       setStatus('Account removed')
       render()
       if (accountId) await window.api.showAccount(platformId, accountId)
@@ -331,19 +375,41 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     setStatus(result.ok ? result.message : result.reason)
   })
 
+  const resizeHandle = root.querySelector('#resize-handle')!
+  resizeHandle.addEventListener('pointerdown', (e) => {
+    const pe = e as PointerEvent
+    pe.preventDefault()
+    const startX = pe.clientX
+    const startWidth = sidebarWidth
+    document.body.style.cursor = 'col-resize'
+
+    const onMove = (ev: PointerEvent) => {
+      applySidebarWidth(startWidth + (ev.clientX - startX))
+    }
+    const onUp = async () => {
+      document.body.style.cursor = ''
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      await window.api.setSidebarWidth(sidebarWidth)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  })
+
   window.api.onConfigUpdated((next) => {
     config = next
     render()
   })
 
   window.addEventListener('resize', reportBounds)
-  reportBounds()
+  applySidebarWidth(config.prefs.sidebarWidth)
   render()
   await loadFiles()
 
   if (accountId) {
     const selected = config.platforms[platformId].accounts.find((a) => a.id === accountId)
     labelInput.value = selected?.label ?? 'Personal'
+    addPlatformSelect.value = platformId
     reportBounds()
     await window.api.showAccount(platformId, accountId)
   }

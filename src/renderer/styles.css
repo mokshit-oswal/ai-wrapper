@@ -1,13 +1,14 @@
 :root {
-  color-scheme: light;
-  --bg: #f4f5f7;
-  --panel: #ffffff;
-  --border: #d8dce3;
-  --text: #1c1f26;
-  --muted: #5c6570;
-  --accent: #1f6feb;
-  --danger: #b42318;
-  --sidebar: 320px;
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #12151b;
+  --border: #2a2f3a;
+  --text: #e8eaed;
+  --muted: #8b939e;
+  --accent: #3b82f6;
+  --danger: #f87171;
+  --sidebar: 280px;
+  --topbar-height: 48px;
   font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif;
 }
 
@@ -25,9 +26,59 @@ body,
 }
 
 .shell {
-  display: grid;
-  grid-template-columns: var(--sidebar) 1fr;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+}
+
+.topbar {
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: #161a22;
+  flex-shrink: 0;
+  z-index: 3;
+}
+
+.topbar-brand {
+  font-weight: 600;
+  font-size: 14px;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.topbar-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.topbar #account-label {
+  width: 140px;
+  margin: 0;
+}
+
+.topbar .status {
+  margin-left: auto;
+  margin-bottom: 0;
+}
+
+.shell-body {
+  display: grid;
+  grid-template-columns: var(--sidebar) 6px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.resize-handle {
+  cursor: col-resize;
+  background: var(--border);
 }
 
 .sidebar {
@@ -60,7 +111,7 @@ body,
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
-  background: #fbfcfd;
+  background: #161a22;
 }
 
 .platform-btn,
@@ -78,14 +129,14 @@ body,
 
 .platform-btn:hover,
 .account-btn:hover {
-  background: #eef2f7;
+  background: #1c212b;
 }
 
 .platform-btn.active,
 .account-btn.active {
-  background: #e7f0ff;
-  border-color: #c6dbff;
-  color: var(--accent);
+  background: #1e3a5f;
+  border-color: #2563eb;
+  color: #93c5fd;
 }
 
 .row {
@@ -97,15 +148,17 @@ body,
 
 button.action {
   border: 1px solid var(--border);
-  background: white;
+  background: #1c212b;
   border-radius: 6px;
   padding: 6px 8px;
   cursor: pointer;
   font-size: 12px;
+  color: var(--text);
 }
 
 button.action:hover {
-  border-color: #b7c0cc;
+  border-color: #3d4654;
+  background: #252b36;
 }
 
 button.action.primary {
@@ -114,19 +167,37 @@ button.action.primary {
   color: white;
 }
 
+button.action.primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+button.action.danger {
+  color: var(--danger);
+}
+
+button.action.danger:hover {
+  border-color: var(--danger);
+}
+
 button.action:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-.inline-form input[type='text'] {
-  width: 100%;
+.topbar select,
+.topbar input[type='text'] {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 8px;
-  margin-bottom: 6px;
+  background: #1c212b;
+  color: var(--text);
+  font-size: 12px;
 }
 
+.topbar select {
+  cursor: pointer;
+}
 
 input[type='search'],
 input[type='text'] {
@@ -135,6 +206,13 @@ input[type='text'] {
   border-radius: 6px;
   padding: 6px 8px;
   margin-top: 6px;
+  background: #1c212b;
+  color: var(--text);
+}
+
+input[type='search']::placeholder,
+input[type='text']::placeholder {
+  color: var(--muted);
 }
 
 .list {
@@ -155,9 +233,15 @@ input[type='text'] {
   color: inherit;
 }
 
-.list button.selected {
-  background: #e7f0ff;
+.list button:hover {
+  background: #1c212b;
   border-radius: 4px;
+}
+
+.list button.selected {
+  background: #1e3a5f;
+  border-radius: 4px;
+  color: #93c5fd;
 }
 
 .status {
