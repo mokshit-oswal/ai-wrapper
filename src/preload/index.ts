@@ -1,18 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { PlatformId } from '../shared/platforms'
-import type {
-  AppConfig,
-  DirEntry,
-  PaneId,
-  ReadTextResult,
-  SearchHit,
-  SessionActionResult,
-  WorkspaceEntry,
-  WorkspaceHealth,
-} from '../shared/types'
+import type { AppConfig, DirEntry, ReadTextResult, SearchHit, WorkspaceEntry, WorkspaceHealth } from '../shared/types'
 import type { Account } from '../shared/types'
-
-export type { PaneId, SessionActionResult }
 
 export type AiWrapperApi = {
   getConfig: () => Promise<AppConfig>
