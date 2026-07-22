@@ -6,7 +6,7 @@ import {
 } from '../shared/accounts-view'
 import { TOP_BAR_HEIGHT, clampSidebarWidth } from '../shared/layout'
 import { PLATFORMS, platformIds, type PlatformId } from '../shared/platforms'
-import type { AppConfig, DirEntry, SearchHit } from '../shared/types'
+import type { AppConfig, DirEntry, SearchHit, PaneId } from '../shared/types'
 
 export async function mountApp(root: HTMLElement): Promise<void> {
   if (!window.api) {
@@ -69,6 +69,13 @@ export async function mountApp(root: HTMLElement): Promise<void> {
   let selectedFile: string | null = null
   let fileRows: Array<{ path: string; label: string }> = []
 
+  let splitActive = false
+  let focusedPane: PaneId = 'left'
+  let splitRatio = 0.5
+  let leftPane: PaneSession | null =
+    accountId ? { platformId, accountId } : null
+  let rightPane: PaneSession | null = null
+
   const statusEl = root.querySelector('#status') as HTMLElement
   const labelInput = root.querySelector('#account-label') as HTMLInputElement
   const addPlatformSelect = root.querySelector('#add-platform') as HTMLSelectElement
@@ -127,9 +134,25 @@ export async function mountApp(root: HTMLElement): Promise<void> {
         labelInput.value = resolved?.label ?? 'Personal'
         addPlatformSelect.value = platformId
         render()
-        if (accountId) void window.api.showAccount(platformId, accountId)
+        if (accountId) void showAccountUi(platformId, accountId)
       })
     })
+  }
+
+  async function showAccountUi(nextPlatform: PlatformId, nextAccountId: string): Promise<void> {
+    const result = await window.api.showAccount(nextPlatform, nextAccountId)
+    if (!result.ok) {
+      setStatus(result.reason)
+      return
+    }
+    platformId = nextPlatform
+    accountId = nextAccountId
+    const session = { platformId: nextPlatform, accountId: nextAccountId }
+    if (!splitActive || focusedPane === 'left') leftPane = session
+    else rightPane = session
+    setStatus(`Showing ${PLATFORMS[nextPlatform].label}`)
+    render()
+    renderSplitChrome()
   }
 
   function renderAccounts(): void {
@@ -226,6 +249,91 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     renderWorkspaces()
   }
 
+  splitToggle.addEventListener('click', async () => {
+    if (splitActive) {
+      await window.api.exitSplit()
+      splitActive = false
+      rightPane = null
+      focusedPane = 'left'
+      if (leftPane) {
+        platformId = leftPane.platformId
+        accountId = leftPane.accountId
+        const selected = config.platforms[platformId].accounts.find((a) => a.id === accountId)
+        labelInput.value = selected?.label ?? 'Personal'
+      }
+      closeRightPicker()
+      setStatus('Exited split — left pane kept')
+      render()
+      renderSplitChrome()
+      return
+    }
+
+    if (!accountId || !leftPane) {
+      setStatus('Select an account before splitting')
+      return
+    }
+    leftPane = { platformId, accountId }
+    const ok = await window.api.enterSplit()
+    if (!ok) {
+      setStatus('Could not enter split')
+      return
+    }
+    splitActive = true
+    splitRatio = 0.5
+    focusedPane = 'right'
+    rightPane = null
+    setStatus('Pick an account for the right pane')
+    renderSplitChrome()
+    openRightPicker()
+  })
+
+  pickerPlatform.addEventListener('change', () => fillPickerAccounts())
+
+  root.querySelector('#picker-cancel')!.addEventListener('click', async () => {
+    closeRightPicker()
+    await window.api.exitSplit()
+    splitActive = false
+    rightPane = null
+    focusedPane = 'left'
+    setStatus('Split canceled')
+    renderSplitChrome()
+  })
+
+  root.querySelector('#picker-confirm')!.addEventListener('click', async () => {
+    const pid = pickerPlatform.value as PlatformId
+    const aid = pickerAccount.value
+    if (!aid) {
+      setStatus('Choose an account for the right pane')
+      return
+    }
+    const ok = await assignPane('right', pid, aid)
+    if (ok) closeRightPicker()
+  })
+
+  const divider = root.querySelector('#split-divider') as HTMLElement
+  let dragging = false
+  divider.addEventListener('pointerdown', (e) => {
+    if (!splitActive) return
+    dragging = true
+    divider.setPointerCapture(e.pointerId)
+  })
+  divider.addEventListener('pointermove', (e) => {
+    if (!dragging) return
+    const main = root.querySelector('.main-column') as HTMLElement
+    const rect = main.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const next = Math.min(0.85, Math.max(0.15, x / rect.width))
+    splitRatio = next
+    syncSplitHeadersLayout()
+    void window.api.setSplitRatio(next)
+  })
+  divider.addEventListener('pointerup', () => {
+    dragging = false
+  })
+  divider.addEventListener('pointercancel', () => {
+    dragging = false
+  })
+
   root.querySelector('#add-account')!.addEventListener('click', async () => {
     const label = labelInput.value.trim() || 'Personal'
     const targetPlatform = addPlatformSelect.value as PlatformId
@@ -237,7 +345,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
       accountId = account.id
       config = await window.api.getConfig()
       reportBounds()
-      await window.api.showAccount(platformId, accountId)
+      await showAccountUi(platformId, account.id)
       setStatus(`Added “${account.label}” — sign in with Google in the webview`)
       render()
     } catch (err) {
@@ -263,6 +371,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
       config = await window.api.getConfig()
       setStatus('Account renamed')
       render()
+      renderSplitChrome()
     } catch (err) {
       setStatus(`Rename failed: ${String(err)}`)
     }
@@ -273,6 +382,8 @@ export async function mountApp(root: HTMLElement): Promise<void> {
       setStatus('Select an account to remove')
       return
     }
+    const removedId = accountId
+    const removedPlatform = platformId
     const current = config.platforms[platformId].accounts.find((a) => a.id === accountId)
     if (!(await window.api.confirm(`Remove account “${current?.label ?? ''}” and its saved session?`))) {
       return
@@ -299,7 +410,8 @@ export async function mountApp(root: HTMLElement): Promise<void> {
         'Personal'
       setStatus('Account removed')
       render()
-      if (accountId) await window.api.showAccount(platformId, accountId)
+      if (accountId) await showAccountUi(platformId, accountId)
+      renderSplitChrome()
     } catch (err) {
       setStatus(`Remove failed: ${String(err)}`)
     }
@@ -314,7 +426,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     try {
       await window.api.clearAccountSession(platformId, accountId)
       reportBounds()
-      await window.api.showAccount(platformId, accountId)
+      await showAccountUi(platformId, accountId)
       setStatus('Session cleared — sign in again')
     } catch (err) {
       setStatus(`Clear session failed: ${String(err)}`)
@@ -402,11 +514,13 @@ export async function mountApp(root: HTMLElement): Promise<void> {
   window.api.onConfigUpdated((next) => {
     config = next
     render()
+    renderSplitChrome()
   })
 
   window.addEventListener('resize', reportBounds)
   applySidebarWidth(config.prefs.sidebarWidth)
   render()
+  renderSplitChrome()
   await loadFiles()
 
   if (accountId) {
@@ -414,7 +528,7 @@ export async function mountApp(root: HTMLElement): Promise<void> {
     labelInput.value = selected?.label ?? 'Personal'
     addPlatformSelect.value = platformId
     reportBounds()
-    await window.api.showAccount(platformId, accountId)
+    await showAccountUi(platformId, accountId)
   }
 }
 

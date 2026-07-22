@@ -38,3 +38,7 @@ export type ReadTextResult =
   | { ok: false; reason: string }
 
 export type WorkspaceHealth = 'ok' | 'missing' | 'unreadable'
+
+export type PaneId = 'left' | 'right'
+
+export type SessionActionResult = { ok: true } | { ok: false; reason: string }

@@ -116,7 +116,7 @@ export function registerIpc(ctx: AppContext): void {
 
   ipcMain.handle('sessions:show', (_e, platformId: PlatformId, accountId: string) => {
     const account = findAccount(ctx.getConfig(), platformId, accountId)
-    if (!account) return false
+    if (!account) return { ok: false as const, reason: 'Account not found' }
     const platform = PLATFORMS[platformId]
     ctx.getSessions()?.showAccount(platformId, account, platform.url)
     const prev = ctx.getConfig()
